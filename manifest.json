@@ -1,14 +1,161 @@
 {
   "version": "1.0.0",
   "tools": {
+    "1lyJointSelection": {
+      "title": "1ly Joint Selection",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/1lyJointSelection.py",
+      "help": { "description": "Quickly select specific joint chains or hierarchies.", "links": [] }
+    },
+    "2locmid": {
+      "title": "2 Loc Mid",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/2locmid.py",
+      "help": { "description": "Create a locator precisely at the midpoint between two selections.", "links": [] }
+    },
     "adv_playblast": {
       "title": "Adv Playblast",
-      "category": "Animation",
+      "category": "Utilities",
       "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/adv_playblast.py",
-      "help": {
-        "description": "Custom viewport playblast utility.",
-        "links": []
-      }
+      "help": { "description": "Professional playblast tool with FFmpeg H.264 encoding.", "links": [] }
+    },
+    "bsconnector": {
+      "title": "BS Connector",
+      "category": "Blendshapes",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/bsconnector.py",
+      "help": { "description": "Automated blendshape connection utility.", "links": [] }
+    },
+    "bsExtractor": {
+      "title": "BS Extractor",
+      "category": "Blendshapes",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/bsExtractor.py",
+      "help": { "description": "Extract blendshape targets from a mesh.", "links": [] }
+    },
+    "bShapesAutoConnect": {
+      "title": "BShapes Auto Connect",
+      "category": "Blendshapes",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/bShapesAutoConnect.py",
+      "help": { "description": "Automatically connect blendshapes based on naming conventions.", "links": [] }
+    },
+    "channelresetter": {
+      "title": "Channel Resetter",
+      "category": "Utilities",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/channelresetter.py",
+      "help": { "description": "Reset selected object channels to their default values.", "links": [] }
+    },
+    "collisionmaker": {
+      "title": "Collision Maker",
+      "category": "Simulation",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/collisionmaker.py",
+      "help": { "description": "Generate collision meshes for dynamics/simulation.", "links": [] }
+    },
+    "compbasedselct": {
+      "title": "Comp Based Select",
+      "category": "Utilities",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/compbasedselct.py",
+      "help": { "description": "Component-based selection utility.", "links": [] }
+    },
+    "ControllerClone": {
+      "title": "Controller Clone",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/ControllerClone.py",
+      "help": { "description": "Duplicate rig controllers while maintaining offset groups.", "links": [] }
+    },
+    "CtrlShape_Connector": {
+      "title": "Ctrl Shape Connector",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/CtrlShape_Connector.py",
+      "help": { "description": "Connect NURBS curve shapes to transform nodes.", "links": [] }
+    },
+    "CustAttrApply": {
+      "title": "Cust Attr Apply",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/CustAttrApply.py",
+      "help": { "description": "Apply saved custom attributes to objects.", "links": [] }
+    },
+    "CustAttrSave": {
+      "title": "Cust Attr Save",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/CustAttrSave.py",
+      "help": { "description": "Save custom attributes from selected objects.", "links": [] }
+    },
+    "deformerorder": {
+      "title": "Deformer Order",
+      "category": "Utilities",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/deformerorder.py",
+      "help": { "description": "Manage and reorder the deformation history stack.", "links": [] }
+    },
+    "matrixconnector": {
+      "title": "Matrix Connector",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/matrixconnector.py",
+      "help": { "description": "Connect objects using matrix math instead of constraints.", "links": [] }
+    },
+    "mayascenenotes": {
+      "title": "Maya Scene Notes",
+      "category": "Utilities",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/mayascenenotes.py",
+      "help": { "description": "Save and read notes embedded within the Maya scene file.", "links": [] }
+    },
+    "OBJBatchExporter": {
+      "title": "OBJ Batch Exporter",
+      "category": "Utilities",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/OBJBatchExporter.py",
+      "help": { "description": "Batch export selected meshes to individual OBJ files.", "links": [] }
+    },
+    "PipInstaller": {
+      "title": "Pip Installer",
+      "category": "Utilities",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/PipInstaller.py",
+      "help": { "description": "Install Python pip packages directly into Maya's environment.", "links": [] }
+    },
+    "selectdeformjoints": {
+      "title": "Select Deform Joints",
+      "category": "Skinning",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/selectdeformjoints.py",
+      "help": { "description": "Select only the joints that have skin weights applied to a mesh.", "links": [] }
+    },
+    "transformmanager": {
+      "title": "Transform Manager",
+      "category": "Utilities",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/transformmanager.py",
+      "help": { "description": "Utility for matching and freezing transforms.", "links": [] }
+    },
+    "twister": {
+      "title": "Twister",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/twister.py",
+      "help": { "description": "Create twist extraction rigs for limbs.", "links": [] }
+    },
+    "valuecalc": {
+      "title": "Value Calc",
+      "category": "Utilities",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/valuecalc.py",
+      "help": { "description": "Calculate offset values and distances.", "links": [] }
+    },
+    "vertex2joint": {
+      "title": "Vertex To Joint",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/vertex2joint.py",
+      "help": { "description": "Snap a joint to the exact position of a selected vertex.", "links": [] }
+    },
+    "vertexselector": {
+      "title": "Vertex Selector",
+      "category": "Utilities",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/vertexselector.py",
+      "help": { "description": "Advanced vertex selection utility.", "links": [] }
+    },
+    "vertextrack": {
+      "title": "Vertex Track",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/vertextrack.py",
+      "help": { "description": "Attach a locator or object to a deforming vertex.", "links": [] }
+    },
+    "zivatoolsshortcut": {
+      "title": "Ziva Tools Shortcut",
+      "category": "Simulation",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/zivatoolsshortcut.py",
+      "help": { "description": "Quick access panel for common Ziva Dynamics tools.", "links": [] }
     }
   }
 }
