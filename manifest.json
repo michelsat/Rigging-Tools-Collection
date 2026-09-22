@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "tools": {
+    "adv_playblast": {
+      "title": "Adv Playblast",
+      "category": "Animation",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/main/tools/adv_playblast.py",
+      "help": {
+        "description": "Custom viewport playblast utility.",
+        "links": []
+      }
+    }
+  }
+}
