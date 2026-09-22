@@ -4,7 +4,7 @@
     "adv_playblast": {
       "title": "Adv Playblast",
       "category": "Animation",
-      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/main/tools/adv_playblast.py",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/adv_playblast.py",
       "help": {
         "description": "Custom viewport playblast utility.",
         "links": []
