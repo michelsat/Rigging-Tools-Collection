@@ -30,7 +30,7 @@ class RiggingToolsCollection:
     
     # Cloud OTA Settings
     self.MANIFEST_URL = "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/main/manifest.json"
-    self.GITHUB_TOKEN = "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" # Add token here if repo becomes Private
+    self.GITHUB_TOKEN = "" # Add token here if repo becomes Private
     
     self.button_order = []
     self.categories = []
