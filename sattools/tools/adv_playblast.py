@@ -1612,5 +1612,3 @@ if __name__ == "__main__":
     show_advanced_playblast_tool()
 
 
-def show_ui():
-    show_advanced_playblast_tool()
