@@ -3,6 +3,7 @@ import sys
 import urllib.request
 import json
 import types
+import shutil
 import maya.cmds as cmds
 
 from .config import load_config as load_collection_config
@@ -30,7 +31,15 @@ class RiggingToolsCollection:
     
     # Cloud OTA Settings
     self.MANIFEST_URL = "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/main/manifest.json"
-    self.GITHUB_TOKEN = "" # Add token here if repo becomes Private
+    self.GITHUB_TOKEN = "" 
+    
+    # Toggle State: Read from Maya preferences (defaults to True if not set)
+    self.use_cache = cmds.optionVar(query="rtc_use_cache") if cmds.optionVar(exists="rtc_use_cache") else True
+    
+    # Setup offline cache directory
+    self.cache_dir = os.path.join(self.scripts_directory, ".cloud_cache")
+    if self.use_cache and not os.path.exists(self.cache_dir):
+      os.makedirs(self.cache_dir)
     
     self.button_order = []
     self.categories = []
@@ -51,42 +60,78 @@ class RiggingToolsCollection:
     self.fetch_cloud_tools()
     self.load_config()
 
+  def toggle_cache_mode(self, value, *args):
+    """Toggle between Pure Cloud (In-Memory) and Smart Offline Cache."""
+    self.use_cache = value
+    cmds.optionVar(intValue=("rtc_use_cache", self.use_cache))
+    
+    if self.use_cache:
+      if not os.path.exists(self.cache_dir):
+        os.makedirs(self.cache_dir)
+      cmds.inViewMessage(amg="Mode: Smart Offline Cache Enabled", pos="midCenter", fade=True)
+    else:
+      cmds.inViewMessage(amg="Mode: Pure Cloud Streaming Enabled", pos="midCenter", fade=True)
+
   def fetch_cloud_tools(self):
-    """Fetch the list of tools from the GitHub manifest."""
+    """Fetch manifest from GitHub; respect cache toggle for offline fallback."""
     self.tool_scripts = {}
-    cmds.inViewMessage(amg="Syncing tools with Cloud...", pos="midCenter", fade=True)
+    manifest_cache = os.path.join(self.cache_dir, "manifest.json")
+    data = {}
+
     try:
-      headers = {}
-      if self.GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {self.GITHUB_TOKEN}"
-          
+      headers = {"Authorization": f"Bearer {self.GITHUB_TOKEN}"} if self.GITHUB_TOKEN else {}
       req = urllib.request.Request(self.MANIFEST_URL, headers=headers)
-      with urllib.request.urlopen(req, timeout=10) as response:
-        data = json.loads(response.read().decode("utf-8"))
-          
-      tools_data = data.get("tools", {})
-      for tool_id, tool_info in tools_data.items():
-        # Store the direct URL instead of a local file path
-        self.tool_scripts[tool_id] = tool_info.get("url")
-          
-        # Auto-populate cloud help data if local help isn't already customized
-        if tool_id not in self.tool_help and "help" in tool_info:
-          self.tool_help[tool_id] = tool_info["help"]
-              
-    except Exception as e:
-      cmds.warning(f"Failed to fetch tools from cloud: {e}")
+      with urllib.request.urlopen(req, timeout=5) as response:
+        raw_text = response.read().decode("utf-8")
+        data = json.loads(raw_text)
+
+      if self.use_cache:
+        if not os.path.exists(self.cache_dir): 
+          os.makedirs(self.cache_dir)
+        with open(manifest_cache, "w", encoding="utf-8") as f:
+          f.write(raw_text)
+
+    except Exception:
+      if self.use_cache and os.path.exists(manifest_cache):
+        try:
+          with open(manifest_cache, "r", encoding="utf-8") as f:
+            data = json.load(f)
+          cmds.inViewMessage(amg="Offline Mode Active", pos="midCenter", fade=True)
+        except Exception:
+          cmds.warning("Failed to read cached manifest.")
+          return
+      else:
+        cmds.warning("Cannot reach server (Pure Cloud Mode requires internet).")
+        return
+
+    tools_data = data.get("tools", {})
+    for tool_id, tool_info in tools_data.items():
+      self.tool_scripts[tool_id] = tool_info.get("url")
+      if tool_id not in self.tool_help and "help" in tool_info:
+        self.tool_help[tool_id] = tool_info["help"]
 
   def load_config(self):
+    # 1. Backup the help data we just fetched from GitHub
+    cloud_help_backup = dict(self.tool_help)
+
+    # 2. Load the local configuration file
     (
         self.button_order,
         self.current_button_color,
         self.button_colors,
         self.categories,
         self.button_categories,
-        self.tool_help,
+        local_help,
     ) = load_collection_config(
         self.config_file, self.tool_scripts, self.default_button_color
     )
+
+    # 3. Restore the cloud help, but let local custom edits override it
+    self.tool_help = cloud_help_backup
+    if local_help:
+        for tool, help_data in local_help.items():
+            if help_data and (help_data.get("description") or help_data.get("links")):
+                self.tool_help[tool] = help_data
 
   def save_config(self):
     try:
@@ -103,42 +148,65 @@ class RiggingToolsCollection:
       cmds.warning(f"Error saving configuration: {str(e)}")
 
   def run_script(self, module_name, *args):
-    """Download and execute the tool script from the cloud in-memory."""
+    """Execute tool based on the active Cloud/Cache mode."""
     remote_url = self.tool_scripts.get(module_name)
-    if not remote_url:
-      cmds.warning(f"No URL found in manifest for {module_name}")
-      return
+    cached_tool_path = os.path.join(self.cache_dir, f"{module_name}.py")
+    mod = types.ModuleType(module_name)
+
+    # MODE 1: SMART OFFLINE CACHE
+    if self.use_cache:
+      if not os.path.exists(cached_tool_path):
+        if not remote_url: 
+          cmds.warning(f"No URL found for {module_name}")
+          return
+        cmds.inViewMessage(amg=f"Caching {module_name}...", pos="midCenter", fade=True)
         
-    cmds.inViewMessage(amg=f"Downloading {module_name}...", pos="midCenter", fade=True)
-    try:
-      headers = {}
-      if self.GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {self.GITHUB_TOKEN}"
+        try:
+          headers = {"Authorization": f"Bearer {self.GITHUB_TOKEN}"} if self.GITHUB_TOKEN else {}
+          req = urllib.request.Request(remote_url, headers=headers)
+          with urllib.request.urlopen(req, timeout=8) as response:
+            with open(cached_tool_path, "w", encoding="utf-8") as f:
+              f.write(response.read().decode("utf-8"))
+        except Exception as e:
+          cmds.warning(f"Download failed: {e}")
+          return
+
+      try:
+        with open(cached_tool_path, "r", encoding="utf-8") as f:
+          source_code = f.read()
+        mod.__file__ = cached_tool_path
+        mod.__dict__["__name__"] = "__main__"
+        exec(compile(source_code, cached_tool_path, "exec"), mod.__dict__)
+      except Exception as e:
+        cmds.warning(f"Cache execution error: {e}")
+        return
+
+    # MODE 2: PURE CLOUD STREAMING (In-Memory)
+    else:
+      if not remote_url: 
+        cmds.warning(f"No URL found for {module_name}")
+        return
+      cmds.inViewMessage(amg=f"Streaming {module_name}...", pos="midCenter", fade=True)
+      
+      try:
+        headers = {"Authorization": f"Bearer {self.GITHUB_TOKEN}"} if self.GITHUB_TOKEN else {}
+        req = urllib.request.Request(remote_url, headers=headers)
+        with urllib.request.urlopen(req, timeout=8) as response:
+          source_code = response.read().decode("utf-8")
           
-      req = urllib.request.Request(remote_url, headers=headers)
-      with urllib.request.urlopen(req, timeout=10) as response:
-        source_code = response.read().decode("utf-8")
-      
-      # Create a dedicated module space in memory
-      mod = types.ModuleType(module_name)
-      mod.__file__ = f"<cloud>/{module_name}.py"
-      mod.__dict__["__name__"] = "__main__"
-      
-      # Compile and run
-      compiled_code = compile(source_code, f"<cloud>/{module_name}", "exec")
-      exec(compiled_code, mod.__dict__)
-      
-      # Execute standard entry points if defined
-      for entry in ("main", "run", "show_ui"):
-        fn = getattr(mod, entry, None)
-        if callable(fn):
-          fn()
-          break
-      
-      cmds.inViewMessage(amg=f"Successfully loaded {module_name}", pos="midCenter", fade=True)
-          
-    except Exception as e:
-      cmds.warning(f"Failed to run {module_name} from cloud: {e}")
+        mod.__file__ = f"<cloud>/{module_name}.py"
+        mod.__dict__["__name__"] = "__main__"
+        exec(compile(source_code, f"<cloud>/{module_name}", "exec"), mod.__dict__)
+      except Exception as e:
+        cmds.warning(f"Streaming failed: {e}")
+        return
+
+    # Launch UI (Shared)
+    for entry in ("main", "run", "show_ui"):
+      fn = getattr(mod, entry, None)
+      if callable(fn):
+        fn()
+        break
 
   # -------------------------------------------------------------------------
   # Tool Help Methods
@@ -735,6 +803,12 @@ class RiggingToolsCollection:
     except Exception as error: cmds.warning(f"Responsive resize support could not be installed: {error}")
 
   def refresh_content(self, *args):
+    if hasattr(self, 'cache_dir') and os.path.exists(self.cache_dir):
+      try:
+        shutil.rmtree(self.cache_dir)
+      except Exception as e:
+        cmds.warning(f"Could not clear cache: {e}")
+
     self.tool_scripts.clear()
     self.fetch_cloud_tools()
     self.load_config()
@@ -745,7 +819,7 @@ class RiggingToolsCollection:
     if cmds.layout(self.content_layout, exists=True):
       self._update_responsive_grid()
       self._rebuild_grid()
-      cmds.inViewMessage(amg="Tools refreshed from Cloud", pos="midCenter", fade=True)
+      cmds.inViewMessage(amg="Cache cleared & tools synced with server", pos="midCenter", fade=True)
     else: self.show_ui()
 
   def adjust_window_height(self, *args):
@@ -754,14 +828,14 @@ class RiggingToolsCollection:
   def show_ui(self):
     if cmds.window(self.window_name, exists=True): cmds.deleteUI(self.window_name)
     window = cmds.window(
-        self.window_name, title="Rigging Tools Collection (OTA Cloud)",
+        self.window_name, title="Rigging Tools Collection (Dual Engine)",
         widthHeight=(self.window_width, self.window_height), sizeable=True, resizeToFitChildren=False,
     )
 
     main_form = cmds.formLayout(numberOfDivisions=100)
     header_column = cmds.columnLayout(adjustableColumn=True, columnAttach=("both", 5), parent=main_form)
 
-    cmds.text(label="Rigging Tools Collection (Cloud)", font="boldLabelFont", height=30)
+    cmds.text(label="Rigging Tools Collection (OTA)", font="boldLabelFont", height=30)
     cmds.text(
         label="(Drag to reorder; right-click for help, groups, and colors)",
         font="smallPlainLabelFont", height=20, backgroundColor=[0.2, 0.2, 0.22],
@@ -777,10 +851,19 @@ class RiggingToolsCollection:
     cmds.setParent(main_form)
 
     footer_layout = cmds.formLayout(parent=main_form, height=44, backgroundColor=[0.22, 0.22, 0.24])
+    
+    cache_checkbox = cmds.checkBox(
+        label="Smart Offline Cache", 
+        value=self.use_cache, 
+        changeCommand=self.toggle_cache_mode, 
+        parent=footer_layout
+    )
+
     refresh_button = cmds.button(
         label="Sync with Server", command=self.refresh_content,
         height=30, width=140, backgroundColor=[0.2, 0.5, 0.35], parent=footer_layout,
     )
+    
     close_button = cmds.button(
         label="Close Window", command=lambda x: cmds.deleteUI(self.window_name),
         height=30, width=120, backgroundColor=[0.6, 0.25, 0.25], parent=footer_layout,
@@ -788,8 +871,14 @@ class RiggingToolsCollection:
 
     cmds.formLayout(
         footer_layout, edit=True,
-        attachForm=[(refresh_button, "top", 7), (refresh_button, "bottom", 7), (close_button, "top", 7), (close_button, "bottom", 7), (close_button, "right", 10)],
-        attachControl=[(refresh_button, "right", 10, close_button)]
+        attachForm=[
+            (cache_checkbox, "left", 15), (cache_checkbox, "top", 14),
+            (refresh_button, "top", 7), (refresh_button, "bottom", 7), 
+            (close_button, "top", 7), (close_button, "bottom", 7), (close_button, "right", 10)
+        ],
+        attachControl=[
+            (refresh_button, "right", 10, close_button)
+        ]
     )
     cmds.setParent(main_form)
 
@@ -810,9 +899,7 @@ class RiggingToolsCollection:
     self._install_resize_filter()
     self._schedule_responsive_grid()
 
-
 def launch_rigging_tools_collection():
-  # Local save location for preferences (colors, groups)
   local_preferences_directory = r"C:/Users/sat/Documents/maya/scripts/sattools"
   tools_collection = RiggingToolsCollection(local_preferences_directory)
   tools_collection.show_ui()
