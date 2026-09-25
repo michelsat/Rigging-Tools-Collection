@@ -51,11 +51,16 @@ class SelectorLogic:
         item_mapping = {}
         display_names = []
         
-        for full_path in raw_items:
+       for full_path in raw_items:
             short_name = full_path.split('|')[-1] 
-            if exact and exact != short_name: continue
-            if prefix and not short_name.startswith(prefix): continue
-            if suffix and not short_name.endswith(suffix): continue
+            
+            # Isolate the core name by splitting off any namespace
+            clean_name = short_name.split(':')[-1]
+            
+            # Apply filters against the clean name, ignoring the namespace
+            if exact and exact != clean_name: continue
+            if prefix and not clean_name.startswith(prefix): continue
+            if suffix and not clean_name.endswith(suffix): continue
             
             ui_name = short_name
             if ui_name in item_mapping:
