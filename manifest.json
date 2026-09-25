@@ -139,6 +139,12 @@
       "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/vertex2joint.py",
       "help": { "description": "Snap a joint to the exact position of a selected vertex.", "links": [] }
     },
+    "selector": {
+      "title": "Selector",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/vertex2joint.py",
+      "help": { "description": "a alternate outliner to handle selection.", "links": [] }
+    },      
     "vertexselector": {
       "title": "Vertex Selector",
       "category": "Utilities",
