@@ -142,7 +142,7 @@
     "selector": {
       "title": "Selector",
       "category": "Rigging",
-      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/vertex2joint.py",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/selector.py",
       "help": { "description": "a alternate outliner to handle selection.", "links": [] }
     },      
     "vertexselector": {
