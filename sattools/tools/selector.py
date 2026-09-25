@@ -13,6 +13,7 @@ class SelectorLogic:
             "Locators": "locator",
             "Constraints": "constraint",
             "Groups": "group",
+            "Surfaces": "nurbsSurface",
             "Clusters": "clusterHandle",
             "Lattice": "lattice",
             "Cameras": "camera",
@@ -23,7 +24,7 @@ class SelectorLogic:
     def get_filtered_items(self, sel_type_label, prefix, suffix, exact, target_parent=""):
         sel_type = self.types_mapping.get(sel_type_label, "*")
         raw_items = []
-        shape_types = ['mesh', 'nurbsCurve', 'locator', 'clusterHandle', 'lattice', 'camera', 'light']
+        shape_types = ['mesh', 'nurbsCurve', 'locator', 'clusterHandle', 'lattice', 'nurbsSurface','camera', 'light']
         
         if sel_type_label == "All":
             raw_items = cmds.ls(transforms=True, long=True) + cmds.ls(type='joint', long=True)
