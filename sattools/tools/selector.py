@@ -51,7 +51,7 @@ class SelectorLogic:
         item_mapping = {}
         display_names = []
         
-       for full_path in raw_items:
+        for full_path in raw_items:
             short_name = full_path.split('|')[-1] 
             
             # Isolate the core name by splitting off any namespace
