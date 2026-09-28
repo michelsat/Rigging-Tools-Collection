@@ -1,3 +1,10 @@
+import logging
+
+# Patch for Python 3.11+ compatibility to allow PyMEL to load
+if not hasattr(logging, '_acquireLock'):
+    logging._acquireLock = lambda: None
+    logging._releaseLock = lambda: None
+
 import pymel.core as pm
 import re
 import time
