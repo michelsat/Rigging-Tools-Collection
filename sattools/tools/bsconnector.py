@@ -1,12 +1,18 @@
 import maya.cmds as cmds
 import maya.OpenMayaUI as omui
 
+# Handle PySide imports for multiple Maya versions 
+# Maya 2025+ uses PySide6, Maya 2017-2024 uses PySide2, and older versions use PySide
 try:
-    from PySide2 import QtCore, QtWidgets, QtGui
-    import shiboken2
+    from PySide6 import QtCore, QtWidgets, QtGui
+    import shiboken6 as shiboken_mod
 except ImportError:
-    from PySide import QtCore, QtGui, QtWidgets
-    import shiboken
+    try:
+        from PySide2 import QtCore, QtWidgets, QtGui
+        import shiboken2 as shiboken_mod
+    except ImportError:
+        from PySide import QtCore, QtGui, QtWidgets
+        import shiboken as shiboken_mod
 
 # Define a unique window name that will be consistent
 WINDOW_NAME = "blendshapeConnectionToolWindow"
@@ -17,10 +23,8 @@ def maya_main_window():
     """
     main_window_ptr = omui.MQtUtil.mainWindow()
     if main_window_ptr is not None:
-        if hasattr(shiboken2, 'wrapInstance'):
-            return shiboken2.wrapInstance(int(main_window_ptr), QtWidgets.QMainWindow)
-        else:
-            return shiboken.wrapInstance(int(main_window_ptr), QtWidgets.QMainWindow)
+        # Utilize the dynamically assigned shiboken module for wrapInstance
+        return shiboken_mod.wrapInstance(int(main_window_ptr), QtWidgets.QMainWindow)
     return None
 
 def check_window_exists():
@@ -37,17 +41,17 @@ def check_window_exists():
         try:
             ptr = omui.MQtUtil.findWindow(WINDOW_NAME)
             if ptr:
-                if hasattr(shiboken2, 'wrapInstance'):
-                    return shiboken2.wrapInstance(int(ptr), QtWidgets.QWidget)
-                else:
-                    return shiboken.wrapInstance(int(ptr), QtWidgets.QWidget)
+                return shiboken_mod.wrapInstance(int(ptr), QtWidgets.QWidget)
         except:
             pass
     
     return None
 
 class BlendshapeConnectionTool(QtWidgets.QDialog):
-    def __init__(self, parent=maya_main_window()):
+    def __init__(self, parent=None):
+        # Dynamically fetch main window to prevent early execution issues
+        if parent is None:
+            parent = maya_main_window()
         super(BlendshapeConnectionTool, self).__init__(parent)
         
         # Window properties
