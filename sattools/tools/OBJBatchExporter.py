@@ -7,7 +7,24 @@ Exports selected meshes as individual OBJ files with proper naming
 import maya.cmds as cmds
 import os
 
-from PySide2 import QtWidgets, QtCore, QtGui
+# Dynamic Qt bindings support for Maya 2025+ (Qt6) and older versions (Qt5)
+try:
+    from PySide6 import QtWidgets, QtCore, QtGui
+    import shiboken6 as shiboken
+except ImportError:
+    try:
+        from PySide2 import QtWidgets, QtCore, QtGui
+        import shiboken2 as shiboken
+    except ImportError:
+        from PySide import QtWidgets, QtCore, QtGui
+        import shiboken
+
+
+def show_dialog(dialog):
+    """Safely execute modal dialogs in both Qt5 (exec_) and Qt6 (exec)."""
+    if hasattr(dialog, 'exec'):
+        return dialog.exec()
+    return dialog.exec_()
 
 
 class OBJBatchExporter(QtWidgets.QWidget):
@@ -162,7 +179,6 @@ class OBJBatchExporter(QtWidgets.QWidget):
 
     def browse_directory(self):
         """Open directory browser"""
-        # Use Maya main window as parent, no stay-on-top flags
         directory = QtWidgets.QFileDialog.getExistingDirectory(
             self,
             "Select Export Directory",
@@ -184,6 +200,13 @@ class OBJBatchExporter(QtWidgets.QWidget):
     def export_meshes(self):
         """Export selected meshes as individual OBJ files"""
 
+        # Ensure the OBJ export plugin is loaded in Maya
+        if not cmds.pluginInfo("objExport", query=True, loaded=True):
+            try:
+                cmds.loadPlugin("objExport")
+            except Exception as e:
+                print("Failed to load objExport plugin: {0}".format(e))
+
         # Validate directory
         export_dir = self.dir_path.text()
         if not export_dir or not os.path.exists(export_dir):
@@ -192,7 +215,7 @@ class OBJBatchExporter(QtWidgets.QWidget):
                 "Error",
                 "Please select a valid export directory!"
             )
-            msgBox.exec_()
+            show_dialog(msgBox)
             self.raise_()
             return
 
@@ -211,7 +234,7 @@ class OBJBatchExporter(QtWidgets.QWidget):
                 "Error",
                 "No meshes selected!"
             )
-            msgBox.exec_()
+            show_dialog(msgBox)
             self.raise_()
             return
 
@@ -282,7 +305,7 @@ class OBJBatchExporter(QtWidgets.QWidget):
                 exported_count, export_dir
             )
         )
-        msgBox.exec_()
+        show_dialog(msgBox)
         self.raise_()
 
 
@@ -300,15 +323,15 @@ def show_exporter():
     maya_window = None
     try:
         from maya import OpenMayaUI as omui
-        from shiboken2 import wrapInstance
         maya_main_window_ptr = omui.MQtUtil.mainWindow()
-        maya_window = wrapInstance(int(maya_main_window_ptr), QtWidgets.QWidget)
+        if maya_main_window_ptr:
+            maya_window = shiboken.wrapInstance(int(maya_main_window_ptr), QtWidgets.QWidget)
     except:
         pass
 
     obj_exporter_window = OBJBatchExporter(parent=maya_window)
 
-    # Normal tool window, no global always-on-top flag
+    # Normal tool window
     obj_exporter_window.setWindowFlags(QtCore.Qt.Window)
 
     obj_exporter_window.show()
