@@ -1,17 +1,33 @@
 import maya.cmds as cmds
-from PySide2 import QtWidgets, QtCore, QtGui
-from shiboken2 import wrapInstance
 import maya.OpenMayaUI as omui
+
+# Dynamic Qt bindings support for Maya 2025+ (Qt6) and older versions (Qt5)
+try:
+    from PySide6 import QtWidgets, QtCore, QtGui
+    import shiboken6 as shiboken
+except ImportError:
+    try:
+        from PySide2 import QtWidgets, QtCore, QtGui
+        import shiboken2 as shiboken
+    except ImportError:
+        from PySide import QtWidgets, QtCore, QtGui
+        import shiboken
 
 def get_maya_main_window():
     """Get Maya main window as a Python object"""
     main_window_ptr = omui.MQtUtil.mainWindow()
-    return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
+    if main_window_ptr:
+        return shiboken.wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
+    return None
 
 
 class VisibilityConnectorUI(QtWidgets.QDialog):
     
-    def __init__(self, parent=get_maya_main_window()):
+    def __init__(self, parent=None):
+        # Dynamically fetch main window to prevent early execution issues
+        if parent is None:
+            parent = get_maya_main_window()
+            
         super(VisibilityConnectorUI, self).__init__(parent)
         
         self.setWindowTitle("Shape Visibility Connector")
