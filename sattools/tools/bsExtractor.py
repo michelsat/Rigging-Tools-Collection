@@ -1,11 +1,3 @@
-import logging
-
-# Patch for Python 3.11+ compatibility to allow PyMEL to load
-if not hasattr(logging, '_acquireLock'):
-    logging._acquireLock = lambda: None
-    logging._releaseLock = lambda: None
-
-import pymel.core as pm
 import re
 import time
 from maya import cmds
@@ -13,7 +5,9 @@ from maya import cmds
 def parseVtxIdx(idxList):
     """Convert vertex index list from strings to indexes."""
     parseIdxList = []
-
+    if not idxList:
+        return parseIdxList
+        
     for idxName in idxList:
         match = re.search(r'\[.+\]', idxName)
         if match:
@@ -22,7 +16,6 @@ def parseVtxIdx(idxList):
                 tokens = content.split(':')
                 startTok = int(tokens[0])
                 endTok = int(tokens[1])
-
                 for rangeIdx in range(startTok, endTok + 1):
                     parseIdxList.append(rangeIdx)
             else:
@@ -32,77 +25,93 @@ def parseVtxIdx(idxList):
 
 
 def recoverMesh(bsNode, weightIdx, startTime, totalTargets, currentTarget, progressBar, progressLabel):
-    """Recover a single blendshape target with progress tracking."""
-    bsNode = pm.PyNode(bsNode)
-    bsNode.envelope.set(0)
+    """Recover a single blendshape target using native maya.cmds."""
+    cmds.setAttr(f"{bsNode}.envelope", 0)
 
-    aliasName = pm.aliasAttr(bsNode.weight[weightIdx], query=True)
+    # Get target alias name
+    aliasName = cmds.aliasAttr(f"{bsNode}.weight[{weightIdx}]", query=True)
     print(f"Processing blendshape target: {aliasName} (Index: {weightIdx})")
 
-    finalMeshes = pm.listFuture(bsNode, type="mesh")
+    # Find connected meshes natively
+    finalMeshes = cmds.listHistory(bsNode, future=True, type="mesh") or []
     
     finalParent = None
     newParent = None
 
-    if len(finalMeshes) > 1:
-        finalParent = finalMeshes[0].getParent()
+    if finalMeshes:
+        parents = cmds.listRelatives(finalMeshes[0], parent=True, fullPath=True)
+        if parents:
+            finalParent = parents[0]
 
     if finalParent:
-        newParent = pm.createNode('transform')
-        pm.rename(newParent, aliasName)
-        pm.delete(pm.parentConstraint(finalParent, newParent, mo=0))
+        newParent = cmds.createNode('transform', name=aliasName)
+        constraint = cmds.parentConstraint(finalParent, newParent, mo=False)[0]
+        cmds.delete(constraint)
 
     for finalIdx, finalMesh in enumerate(finalMeshes):
-        newMesh = pm.duplicate(finalMesh)[0]
-        newMeshShape = newMesh.getShape()
+        newMesh = cmds.duplicate(finalMesh)[0]
+        shapes = cmds.listRelatives(newMesh, shapes=True, fullPath=True)
+        newMeshShape = shapes[0] if shapes else None
 
-        vtxDeltaList = bsNode.inputTarget[finalIdx].inputTargetGroup[weightIdx].inputTargetItem[6000].inputPointsTarget.get()
-        vtxIdxList = bsNode.inputTarget[finalIdx].inputTargetGroup[weightIdx].inputTargetItem[6000].inputComponentsTarget.get()
+        # Format attribute strings
+        pts_attr = f"{bsNode}.inputTarget[{finalIdx}].inputTargetGroup[{weightIdx}].inputTargetItem[6000].inputPointsTarget"
+        comps_attr = f"{bsNode}.inputTarget[{finalIdx}].inputTargetGroup[{weightIdx}].inputTargetItem[6000].inputComponentsTarget"
 
-        if vtxIdxList:
+        # Safely attempt fetching deltas (bypasses targets with no mesh edits)
+        try:
+            vtxDeltaList = cmds.getAttr(pts_attr)
+            vtxIdxList = cmds.getAttr(comps_attr)
+        except ValueError:
+            vtxDeltaList = None
+            vtxIdxList = None
+
+        if vtxIdxList and vtxDeltaList:
             singleIdxList = parseVtxIdx(vtxIdxList)
-            print(f"Applying deltas to {len(singleIdxList)} vertices for mesh: {finalMesh.name()}")
+            print(f"Applying deltas to {len(singleIdxList)} vertices for mesh: {finalMesh}")
 
             for vtxIdx, moveAmount in zip(singleIdxList, vtxDeltaList):
-                pm.move('%s.vtx[%d]' % (newMesh.name(), vtxIdx), moveAmount, r=1)
+                cmds.move(moveAmount[0], moveAmount[1], moveAmount[2], f"{newMesh}.vtx[{vtxIdx}]", relative=True)
 
-        newMeshShape.worldMesh[0] >> bsNode.inputTarget[finalIdx].inputTargetGroup[weightIdx].inputTargetItem[6000].inputGeomTarget
+        if newMeshShape:
+            geom_attr = f"{bsNode}.inputTarget[{finalIdx}].inputTargetGroup[{weightIdx}].inputTargetItem[6000].inputGeomTarget"
+            try:
+                cmds.connectAttr(f"{newMeshShape}.worldMesh[0]", geom_attr, force=True)
+            except RuntimeError:
+                pass # Bypass if the connection is already active or locked
 
         if newParent:
-            pm.parent(newMesh, newParent)
-            pm.rename(newMesh, finalMesh.name())
+            cmds.parent(newMesh, newParent)
+            cmds.rename(newMesh, finalMesh.split('|')[-1])
         else:
-            pm.rename(newMesh, aliasName)
-            if newMesh.getParent():
-                pm.parent(newMesh, world=1)
+            cmds.rename(newMesh, aliasName)
+            if cmds.listRelatives(newMesh, parent=True):
+                cmds.parent(newMesh, world=True)
 
-    bsNode.envelope.set(1)
+    cmds.setAttr(f"{bsNode}.envelope", 1)
 
     # Update progress bar and label
     elapsedTime = time.time() - startTime
     progress = (currentTarget + 1) / totalTargets * 100
-    avgTimePerTarget = elapsedTime / (currentTarget + 1)
+    avgTimePerTarget = elapsedTime / (currentTarget + 1) if (currentTarget + 1) > 0 else 0
     remainingTime = avgTimePerTarget * (totalTargets - currentTarget - 1)
 
     cmds.progressBar(progressBar, edit=True, progress=progress)
     cmds.text(progressLabel, edit=True, label=f"Progress: {progress:.2f}% | Elapsed: {elapsedTime:.2f}s | Remaining: {remainingTime:.2f}s")
 
-    if newParent:
-        return newParent
-    elif newMesh:
-        return newMesh
+    return newParent if newParent else finalMeshes[0] if finalMeshes else None
 
 
 def recoverAllBlendshapes(bsNode, progressBar, progressLabel):
-    """Recover all blendshape targets from the given blendshape node with progress tracking."""
-    bsNode = pm.PyNode(bsNode)
-    numTargets = bsNode.weight.numElements()
-    print(f"Found {numTargets} blendshape targets in {bsNode.name()}")
-
+    """Recover all blendshape targets from the given blendshape node."""
+    # Find active weight indices
+    weight_indices = cmds.getAttr(f"{bsNode}.weight", multiIndices=True) or []
+    numTargets = len(weight_indices)
+    
+    print(f"Found {numTargets} blendshape targets in {bsNode}")
     startTime = time.time()
 
-    for weightIdx in range(numTargets):
-        recoverMesh(bsNode, weightIdx, startTime, numTargets, weightIdx, progressBar, progressLabel)
+    for idx, weightIdx in enumerate(weight_indices):
+        recoverMesh(bsNode, weightIdx, startTime, numTargets, idx, progressBar, progressLabel)
 
     # Close the progress bar when done
     cmds.progressBar(progressBar, edit=True, endProgress=True)
@@ -126,7 +135,6 @@ def createUI():
 
     # Start Button
     cmds.button(label="Start Extraction", command=lambda *args: startExtraction(progressBar, progressLabel))
-
     cmds.showWindow(windowName)
 
 
@@ -137,8 +145,7 @@ def startExtraction(progressBar, progressLabel):
         cmds.warning("Please select a blendShape node.")
         return
 
-    blendShapeNode = blendShapeNode[0]
-    recoverAllBlendshapes(blendShapeNode, progressBar, progressLabel)
+    recoverAllBlendshapes(blendShapeNode[0], progressBar, progressLabel)
 
 
 # Run the UI
