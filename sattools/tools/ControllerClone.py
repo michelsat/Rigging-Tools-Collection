@@ -1,19 +1,35 @@
 import maya.cmds as cmds
-from PySide2 import QtWidgets, QtCore, QtGui
 import maya.OpenMayaUI as omui
-from shiboken2 import wrapInstance
+
+# Dynamic Qt bindings support for Maya 2025+ (Qt6) and older versions (Qt5)
+try:
+    from PySide6 import QtWidgets, QtCore, QtGui
+    import shiboken6 as shiboken
+except ImportError:
+    try:
+        from PySide2 import QtWidgets, QtCore, QtGui
+        import shiboken2 as shiboken
+    except ImportError:
+        from PySide import QtWidgets, QtCore, QtGui
+        import shiboken
 
 
 def maya_main_window():
     """Get Maya's main window as a QWidget"""
     main_window_ptr = omui.MQtUtil.mainWindow()
-    return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
+    if main_window_ptr:
+        return shiboken.wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
+    return None
 
 
 class ControlDuplicatorUI(QtWidgets.QDialog):
     """UI for duplicating controls with scaled CVs and hierarchy management"""
     
-    def __init__(self, parent=maya_main_window()):
+    def __init__(self, parent=None):
+        # Dynamically fetch main window to prevent early execution issues
+        if parent is None:
+            parent = maya_main_window()
+            
         super(ControlDuplicatorUI, self).__init__(parent)
         
         self.setWindowTitle("Control Duplicator")
