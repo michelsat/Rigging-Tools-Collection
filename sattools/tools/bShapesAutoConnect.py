@@ -1,18 +1,34 @@
 import maya.cmds as cmds
-from PySide2 import QtWidgets, QtCore, QtGui
 import maya.OpenMayaUI as omui
-from shiboken2 import wrapInstance
+
+# Dynamic Qt bindings support for Maya 2025+ (Qt6) and older versions (Qt5)
+try:
+    from PySide6 import QtWidgets, QtCore, QtGui
+    import shiboken6 as shiboken
+except ImportError:
+    try:
+        from PySide2 import QtWidgets, QtCore, QtGui
+        import shiboken2 as shiboken
+    except ImportError:
+        from PySide import QtWidgets, QtCore, QtGui
+        import shiboken
 
 
 def get_maya_window():
     """Get Maya main window as QWidget"""
     ptr = omui.MQtUtil.mainWindow()
-    return wrapInstance(int(ptr), QtWidgets.QWidget)
+    if ptr:
+        return shiboken.wrapInstance(int(ptr), QtWidgets.QWidget)
+    return None
 
 
 class BlendshapeControlConnector(QtWidgets.QDialog):
     def __init__(self, parent=None):
-        super(BlendshapeControlConnector, self).__init__(parent or get_maya_window())
+        # Dynamically fetch main window to prevent early execution issues
+        if parent is None:
+            parent = get_maya_window()
+            
+        super(BlendshapeControlConnector, self).__init__(parent)
         
         self.setWindowTitle("Blendshape Control Connector")
         self.setMinimumWidth(500)
