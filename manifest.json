@@ -79,6 +79,12 @@
       "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/CustAttrSave.py",
       "help": { "description": "Save custom attributes from selected objects.", "links": [] }
     },
+     "CurvesCVcopier": {
+      "title": "Curves CV Copier",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/CurvesCVcopier.py",
+      "help": { "description": "Copy CV positions between curves.", "links": [] }
+    },
     "deformerorder": {
       "title": "Deformer Order",
       "category": "Utilities",
