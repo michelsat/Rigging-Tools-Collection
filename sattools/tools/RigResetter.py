@@ -9,14 +9,10 @@ class RiggerSetupTool:
         self.show_ui()
 
     def show_ui(self):
-        # Close existing window if open
         if cmds.window(self.window_name, exists=True):
             cmds.deleteUI(self.window_name)
 
-        # Increased window height and width for better spacing
-        cmds.window(self.window_name, title="Rig Reset Setup Tool", widthHeight=(300, 300), sizeable=False)
-        
-        # Main Layout with padding on the sides
+        cmds.window(self.window_name, title="Rig Reset Setup Tool", widthHeight=(360, 310), sizeable=False)
         cmds.columnLayout(adjustableColumn=True, rowSpacing=8, columnAttach=('both', 20))
 
         cmds.separator(height=15, style="none")
@@ -30,20 +26,20 @@ class RiggerSetupTool:
         
         # --- SECTION 2: INSTRUCTIONS ---
         cmds.text(label="2. Setup Instructions", align="left", font="boldLabelFont")
-        cmds.text(label="  • Pose controllers in their default zero/rest state.", align="left")
-        cmds.text(label="  • Select all the controllers in the viewport.", align="left")
-        cmds.text(label="  • Click 'DONE' below to bake data & embed.", align="left")
+        
+        # FIX: Replaced bullet points with standard hyphens to prevent UTF-8 streaming errors
+        cmds.text(label="  - Pose controllers in their default zero/rest state.", align="left")
+        cmds.text(label="  - Select all the controllers in the viewport.", align="left")
+        cmds.text(label="  - Click 'DONE' below to bake data & embed.", align="left")
 
-        # Spacer before the button
         cmds.separator(height=15, style="none")
 
-        # --- THE DONE BUTTON --- (Removed the invalid 'font' flag here)
+        # --- THE DONE BUTTON ---
         cmds.button(label="DONE: Bake States & Embed UI", 
-                    height=35, 
+                    height=50, 
                     backgroundColor=(0.25, 0.65, 0.35), 
                     command=self.build_and_embed)
 
-        # Spacer after the button to prevent it from touching the bottom window edge
         cmds.separator(height=15, style="none")
 
         cmds.showWindow(self.window_name)
@@ -70,30 +66,25 @@ class RiggerSetupTool:
         cmds.setAttr(f"{self.network_node}.author", author, type="string")
         cmds.setAttr(f"{self.network_node}.version", version, type="string")
 
-        # Recreate connections array cleanly
         if cmds.attributeQuery("rigControls", node=self.network_node, exists=True):
             cmds.deleteAttr(f"{self.network_node}.rigControls")
         cmds.addAttr(self.network_node, longName="rigControls", attributeType="message", multi=True)
         
-        # Create string attribute for JSON snapshot data
         if not cmds.attributeQuery("resetData", node=self.network_node, exists=True):
             cmds.addAttr(self.network_node, longName="resetData", dataType="string")
 
         reset_data_list = []
 
-        # Wire connections and take snapshot of current values
         for i, ctrl in enumerate(selection):
             cmds.connectAttr(f"{ctrl}.message", f"{self.network_node}.rigControls[{i}]", force=True)
             
             ctrl_defaults = {}
-            # Get all keyable and unlocked attributes (translates, rotates, scales, AND custom attrs)
             keyable_attrs = cmds.listAttr(ctrl, keyable=True, unlocked=True) or []
             
             for attr in keyable_attrs:
                 plug = f"{ctrl}.{attr}"
                 try:
                     val = cmds.getAttr(plug)
-                    # Only store numerical values (ignore strings/messages)
                     if isinstance(val, (int, float, bool)):
                         ctrl_defaults[attr] = val
                 except:
@@ -101,7 +92,6 @@ class RiggerSetupTool:
             
             reset_data_list.append(ctrl_defaults)
 
-        # Serialize list to JSON and store it
         json_payload = json.dumps(reset_data_list)
         cmds.setAttr(f"{self.network_node}.resetData", json_payload, type="string")
 
@@ -141,7 +131,6 @@ def show_animator_ui(*args):
     cmds.showWindow(win_name)
 
 def do_reset(net_node):
-    # Retrieve the JSON snapshot
     if not cmds.attributeQuery("resetData", node=net_node, exists=True):
         cmds.warning("No baked default states found!")
         return
@@ -153,7 +142,6 @@ def do_reset(net_node):
         cmds.warning("Could not read reset data.")
         return
         
-    # Get active array indices
     indices = cmds.getAttr(net_node + ".rigControls", multiIndices=True) or []
     reset_count = 0
     
@@ -164,7 +152,6 @@ def do_reset(net_node):
             
         ctrl = connections[0]
         
-        # Match controller to its baked dictionary using the array index
         if i < len(reset_data_list):
             defaults = reset_data_list[i]
             for attr, default_val in defaults.items():
@@ -178,11 +165,9 @@ def do_reset(net_node):
                     
     cmds.inViewMessage(amg="<hl>Rig Reset Complete!</hl>", pos='midCenter', fade=True)
 
-# Bind functions to global space so the shelf and menu can trigger them anytime
 __main__.show_animator_ui = show_animator_ui
 __main__.do_reset = do_reset
 
-# Inject a temporary menu into Maya's main window
 menu_name = "RigTools_TopMenu"
 if cmds.menu(menu_name, exists=True):
     cmds.deleteUI(menu_name)
@@ -190,7 +175,6 @@ if cmds.menu(menu_name, exists=True):
 cmds.menu(menu_name, label="Rig Tools", parent="MayaWindow", tearOff=True)
 cmds.menuItem(label="Open Rig Reset UI", command="import __main__; __main__.show_animator_ui()")
 
-# Auto-open the UI on scene load
 cmds.evalDeferred("import __main__; __main__.show_animator_ui()")
 """
 
