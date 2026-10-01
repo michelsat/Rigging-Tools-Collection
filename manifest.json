@@ -85,6 +85,12 @@
       "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/CurvesCVcopier.py",
       "help": { "description": "Copy CV positions between curves.", "links": [] }
     },
+    "RigResetter": {
+      "title": "Rig Resetter",
+      "category": "Rigging",
+      "url": "https://raw.githubusercontent.com/michelsat/Rigging-Tools-Collection/refs/heads/main/sattools/tools/RigResetter.py",
+      "help": { "description": "Reset rig controllers to their default positions.", "links": [] }
+    },
     "deformerorder": {
       "title": "Deformer Order",
       "category": "Utilities",
