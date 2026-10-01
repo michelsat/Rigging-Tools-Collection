@@ -169,4 +169,11 @@ cmds.evalDeferred("import __main__; __main__.show_animator_ui()")
         cmds.inViewMessage(amg="<hl>Success!</hl> Rig bound, states baked, and UI embedded.", pos='midCenter', fade=True)
         cmds.deleteUI(self.window_name)
 
-RiggerSetupTool()
+def launch():
+    """Call this function to launch the tool safely from other scripts/shelves."""
+    global rigger_setup_tool_instance
+    rigger_setup_tool_instance = RiggerSetupTool()
+
+# This ensures it still opens if you run it directly in the Script Editor
+if __name__ == "__main__":
+    launch()
