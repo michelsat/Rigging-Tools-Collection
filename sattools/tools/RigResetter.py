@@ -1,7 +1,7 @@
 import maya.cmds as cmds
 import json
 
-class RigResetter:
+class RiggerSetupTool:
     def __init__(self):
         self.window_name = "RiggerSetupUI"
         self.network_node = "RigReset_Metadata"
@@ -12,36 +12,27 @@ class RigResetter:
         if cmds.window(self.window_name, exists=True):
             cmds.deleteUI(self.window_name)
 
-        cmds.window(self.window_name, title="RigResetter", widthHeight=(300 300), sizeable=False)
+        cmds.window(self.window_name, title="Rig Reset Setup Tool", widthHeight=(360, 310), sizeable=False)
         cmds.columnLayout(adjustableColumn=True, rowSpacing=8, columnAttach=('both', 20))
 
         cmds.separator(height=15, style="none")
         
-        # --- SECTION 1: METADATA ---
         cmds.text(label="1. Rig Metadata", align="left", font="boldLabelFont")
         self.author_field = cmds.textFieldGrp(label="Author Name: ", text="Your Name", columnWidth2=(90, 210))
         self.version_field = cmds.textFieldGrp(label="Rig Version: ", text="1.0", columnWidth2=(90, 210))
 
         cmds.separator(height=10, style="in")
         
-        # --- SECTION 2: INSTRUCTIONS ---
         cmds.text(label="2. Setup Instructions", align="left", font="boldLabelFont")
-        
-        # FIX: Replaced bullet points with standard hyphens to prevent UTF-8 streaming errors
         cmds.text(label="  - Pose controllers in their default zero/rest state.", align="left")
         cmds.text(label="  - Select all the controllers in the viewport.", align="left")
-        cmds.text(label="  - Click 'DONE' below to bake data & embed.", align="left")
+        cmds.text(label="  - Click 'DONE' below to bake data and embed.", align="left")
 
         cmds.separator(height=15, style="none")
 
-        # --- THE DONE BUTTON ---
-        cmds.button(label="DONE: Bake States & Embed UI", 
-                    height=30, 
-                    backgroundColor=(0.25, 0.65, 0.35), 
-                    command=self.build_and_embed)
+        cmds.button(label="DONE: Bake States and Embed UI", height=50, backgroundColor=(0.25, 0.65, 0.35), command=self.build_and_embed)
 
         cmds.separator(height=15, style="none")
-
         cmds.showWindow(self.window_name)
 
     def build_and_embed(self, *args):
@@ -53,9 +44,6 @@ class RigResetter:
             cmds.warning("Please select at least one controller before clicking Done.")
             return
 
-        # ==========================================
-        # 1: CREATE METADATA NETWORK & BAKE SNAPSHOT
-        # ==========================================
         if not cmds.objExists(self.network_node):
             cmds.createNode("network", name=self.network_node)
 
@@ -63,11 +51,12 @@ class RigResetter:
             if not cmds.attributeQuery(attr, node=self.network_node, exists=True):
                 cmds.addAttr(self.network_node, longName=attr, dataType="string")
                 
-        cmds.setAttr(f"{self.network_node}.author", author, type="string")
-        cmds.setAttr(f"{self.network_node}.version", version, type="string")
+        cmds.setAttr(self.network_node + ".author", author, type="string")
+        cmds.setAttr(self.network_node + ".version", version, type="string")
 
         if cmds.attributeQuery("rigControls", node=self.network_node, exists=True):
-            cmds.deleteAttr(f"{self.network_node}.rigControls")
+            cmds.deleteAttr(self.network_node + ".rigControls")
+            
         cmds.addAttr(self.network_node, longName="rigControls", attributeType="message", multi=True)
         
         if not cmds.attributeQuery("resetData", node=self.network_node, exists=True):
@@ -76,13 +65,13 @@ class RigResetter:
         reset_data_list = []
 
         for i, ctrl in enumerate(selection):
-            cmds.connectAttr(f"{ctrl}.message", f"{self.network_node}.rigControls[{i}]", force=True)
+            cmds.connectAttr(ctrl + ".message", self.network_node + ".rigControls[" + str(i) + "]", force=True)
             
             ctrl_defaults = {}
             keyable_attrs = cmds.listAttr(ctrl, keyable=True, unlocked=True) or []
             
             for attr in keyable_attrs:
-                plug = f"{ctrl}.{attr}"
+                plug = ctrl + "." + attr
                 try:
                     val = cmds.getAttr(plug)
                     if isinstance(val, (int, float, bool)):
@@ -93,11 +82,8 @@ class RigResetter:
             reset_data_list.append(ctrl_defaults)
 
         json_payload = json.dumps(reset_data_list)
-        cmds.setAttr(f"{self.network_node}.resetData", json_payload, type="string")
+        cmds.setAttr(self.network_node + ".resetData", json_payload, type="string")
 
-        # ==========================================
-        # 2: EMBED ANIMATOR UI + MENU VIA SCRIPTNODE
-        # ==========================================
         if cmds.objExists(self.script_node_name):
             cmds.delete(self.script_node_name)
 
@@ -183,5 +169,4 @@ cmds.evalDeferred("import __main__; __main__.show_animator_ui()")
         cmds.inViewMessage(amg="<hl>Success!</hl> Rig bound, states baked, and UI embedded.", pos='midCenter', fade=True)
         cmds.deleteUI(self.window_name)
 
-# Launch the Main Tool
-RigResetter()
+RiggerSetupTool()
