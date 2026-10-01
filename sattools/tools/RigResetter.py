@@ -12,7 +12,7 @@ class RiggerSetupTool:
         if cmds.window(self.window_name, exists=True):
             cmds.deleteUI(self.window_name)
 
-        cmds.window(self.window_name, title="Rig Reset Setup Tool", widthHeight=(360, 310), sizeable=False)
+        cmds.window(self.window_name, title="Rig Reset Setup Tool", widthHeight=(300 300), sizeable=False)
         cmds.columnLayout(adjustableColumn=True, rowSpacing=8, columnAttach=('both', 20))
 
         cmds.separator(height=15, style="none")
@@ -36,7 +36,7 @@ class RiggerSetupTool:
 
         # --- THE DONE BUTTON ---
         cmds.button(label="DONE: Bake States & Embed UI", 
-                    height=50, 
+                    height=30, 
                     backgroundColor=(0.25, 0.65, 0.35), 
                     command=self.build_and_embed)
 
