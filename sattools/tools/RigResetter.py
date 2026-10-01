@@ -1,7 +1,7 @@
 import maya.cmds as cmds
 import json
 
-class RiggerSetupTool:
+class RigResetter:
     def __init__(self):
         self.window_name = "RiggerSetupUI"
         self.network_node = "RigReset_Metadata"
@@ -184,4 +184,4 @@ cmds.evalDeferred("import __main__; __main__.show_animator_ui()")
         cmds.deleteUI(self.window_name)
 
 # Launch the Main Tool
-RiggerSetupTool()
+RigResetter()
